@@ -894,5 +894,20 @@
             alert("Sucesso: Suas anotações e tabelas de contas foram compiladas e baixadas! O arquivo .doc foi salvo e abrirá diretamente dentro do Microsoft Word mantendo toda a organização intacta.");
         }
     </script>
+<!-- Código que ativa as funções de Aplicativo Instalável (PWA) -->
+<script>
+  // Conecta o arquivo de manifesto
+  const linkManifesto = document.createElement('link');
+  linkManifesto.rel = 'manifest';
+  linkManifesto.href = 'manifesto.json';
+  document.head.appendChild(linkManifesto);
+
+  // Ativa o operador para funcionar sem internet
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('trabalhador.js')
+      .then(() => console.log('Aplicativo pronto para uso offline!'))
+      .catch((erro) => console.log('Erro ao ativar modo offline:', erro));
+  }
+</script>
 </body>
 </html>
