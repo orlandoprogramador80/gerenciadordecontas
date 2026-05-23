@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fluxo Financeiro - Organizador de Contas</title>
+    <!-- Tailwind CSS para um visual limpo e moderno -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- Fonte Inter para leitura nítida e confortável -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Ícones informativos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Motor gerador de arquivos PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+        /* Botão da aba ativa */
+        .aba-ativa {
+            color: #4f46e5;
+            background-color: #f5f3ff;
+            font-weight: 700;
+            border-left: 4px solid #4f46e5;
+        }
+        /* Efeito visual de foco nas células do calendário */
+        .celula-calendario {
+            transition: all 0.2s ease;
+        }
+        .celula-calendario:hover {
+            transform: translateY(-2px);
+            background-color: #f1f5f9;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased bg-slate-50">
+
+    <!-- Barra de Cima (Cabeçalho Simples e Claro) -->
+    <header class="sticky top-0 z-40 w-full bg-white border-b border-slate-200 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md">
+                <i class="fa-solid fa-wallet text-lg"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-extrabold tracking-tight text-slate-900">Fluxo Financeiro</h1>
+                <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">Organizador de Contas Familiar</p>
+            </div>
+        </div>
+        
+        <!-- Painel de Monitoramento com Valores Grandes -->
+        <div class="flex items-center gap-6 text-sm bg-slate-50 p-2.5 rounded-xl border border-slate-200/60">
+            <div class="text-right">
+                <span class="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">A Pagar (Pendente)</span>
+                <span class="font-extrabold text-slate-900 text-lg" id="topo-contador-pendente">R$ 0,00</span>
+            </div>
+            <div class="h-8 w-px bg-slate-200"></div>
+            <div class="text-right">
+                <span class="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">Total Pago (Quitado)</span>
+                <span class="font-extrabold text-emerald-600 text-lg" id="topo-contador-pago">R$ 0,00</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Área Principal de Conteúdo -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Coluna Esquerda: Menu de Abas e Formulário de Cadastro (4 Colunas) -->
+        <div class="lg:col-span-4 flex flex-col gap-6">
+            
+            <!-- Menu de Seleção das Telas -->
+            <div class="bg-white rounded-2xl p-3 border border-slate-200 flex flex-col gap-1 shadow-xs">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 pt-2 pb-1 block">Menu de Opções</span>
+                <button onclick="trocarTelaAtiva('painel')" id="link-aba-painel" class="aba-ativa flex items-center justify-between px-4 py-3 rounded-xl font-medium text-sm transition-all text-slate-600 hover:bg-slate-50 cursor-pointer text-left">
+                    <div class="flex items-center gap-3">
+                        <i class="fa-solid fa-table-columns text-base"></i> <span class="text-base">Painel Principal</span>
+                    </div>
+                    <span class="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full font-bold" id="cracha-total-contas">0</span>
+                </button>
+                <button onclick="trocarTelaAtiva('agenda')" id="link-aba-agenda" class="flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all text-slate-600 hover:bg-slate-50 cursor-pointer text-left">
+                    <i class="fa-solid fa-calendar-days text-base"></i> <span class="text-base">Agenda de Vencimentos</span>
+                </button>
+                <button onclick="trocarTelaAtiva('notas')" id="link-aba-notas" class="flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all text-slate-600 hover:bg-slate-50 cursor-pointer text-left">
+                    <i class="fa-solid fa-pen-to-square text-base"></i> <span class="text-base">Bloco de Notas (Word)</span>
+                </button>
+            </div>
+
+            <!-- Formulário de Cadastro de Contas -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs">
+                <h3 class="text-xs font-bold text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-plus-circle text-indigo-500 text-base"></i> Cadastrar Nova Conta
+                </h3>
+                <form id="formulario-captura-conta" onsubmit="salvarNovaContaFormulario(event)" class="flex flex-col gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Nome da Conta / Empresa</label>
+                        <input type="text" id="campo-titulo" required placeholder="Ex: Conta de Luz, Água, Internet, Remédios" class="w-full px-3.5 py-2.5 text-base rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all bg-slate-50">
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Valor (R$)</label>
+                            <input type="number" step="0.01" id="campo-valor" required placeholder="0,00" class="w-full px-3.5 py-2.5 text-base rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all bg-slate-50">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Vencimento</label>
+                            <input type="date" id="campo-data" required class="w-full px-3.5 py-2.5 text-base rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all bg-slate-50">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Importância da Conta (Filtro por Cor)</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <label class="border border-slate-200 rounded-xl p-2 flex flex-col items-center gap-1.5 cursor-pointer hover:bg-slate-50 transition-all select-none text-center">
+                                <input type="radio" name="campo-importancia" value="critica" checked class="sr-only peer">
+                                <span class="w-5 h-5 rounded-full bg-rose-500 ring-offset-2 peer-checked:ring-2 ring-rose-500"></span>
+                                <span class="text-[10px] font-bold text-slate-700 tracking-wide uppercase">Muito Urgente</span>
+                            </label>
+                            <label class="border border-slate-200 rounded-xl p-2 flex flex-col items-center gap-1.5 cursor-pointer hover:bg-slate-50 transition-all select-none text-center">
+                                <input type="radio" name="campo-importancia" value="importante" class="sr-only peer">
+                                <span class="w-5 h-5 rounded-full bg-amber-500 ring-offset-2 peer-checked:ring-2 ring-amber-500"></span>
+                                <span class="text-[10px] font-bold text-slate-700 tracking-wide uppercase">Importante</span>
+                            </label>
+                            <label class="border border-slate-200 rounded-xl p-2 flex flex-col items-center gap-1.5 cursor-pointer hover:bg-slate-50 transition-all select-none text-center">
+                                <input type="radio" name="campo-importancia" value="baixa" class="sr-only peer">
+                                <span class="w-5 h-5 rounded-full bg-cyan-500 ring-offset-2 peer-checked:ring-2 ring-cyan-500"></span>
+                                <span class="text-[10px] font-bold text-slate-700 tracking-wide uppercase">Normal</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Guardar Cópia do Boleto / Comprovante</label>
+                        <div class="relative border-2 border-dashed border-slate-200 rounded-xl p-4 text-center hover:bg-indigo-50/40 hover:border-indigo-300 transition-all cursor-pointer">
+                            <input type="file" id="campo-arquivo" accept="application/pdf,image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="processarAnexoDeDocumento(event)">
+                            <div class="text-slate-400 flex flex-col items-center gap-1.5">
+                                <i class="fa-solid fa-file-pdf text-xl text-indigo-500"></i>
+                                <span class="text-xs font-bold text-slate-700" id="texto-botao-upload">Selecionar arquivo PDF</span>
+                                <span class="text-[10px] text-slate-400 font-medium truncate max-w-full px-2" id="nome-arquivo-comentario">Nenhum arquivo anexado</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-xl py-3.5 text-xs font-bold uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer mt-2">
+                        <i class="fa-solid fa-save"></i> Salvar Conta na Lista
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Coluna Direita: Exibição das Telas (8 Colunas) -->
+        <div class="lg:col-span-8 flex flex-col gap-6">
+            
+            <!-- ================= TELA 1: PAINEL PRINCIPAL ================= -->
+            <div id="tela-painel" class="painel-conteudo-aba flex flex-col gap-6">
+                <!-- Cartões de Resumo por Categoria de Urgência -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="bg-gradient-to-br from-rose-50/60 to-white p-5 rounded-2xl border border-rose-100 relative">
+                        <span class="text-[10px] font-bold text-rose-600 uppercase tracking-wider block mb-1">Muito Urgentes (Vermelho)</span>
+                        <h2 class="text-2xl font-extrabold text-slate-900" id="resumo-valor-critico">R$ 0,00</h2>
+                        <div class="absolute right-4 top-4 w-2 h-2 rounded-full bg-rose-500 animate-pulse"></div>
+                    </div>
+                    <div class="bg-gradient-to-br from-amber-50/60 to-white p-5 rounded-2xl border border-amber-100 relative">
+                        <span class="text-[10px] font-bold text-amber-600 uppercase tracking-wider block mb-1">Importantes (Amarelo)</span>
+                        <h2 class="text-2xl font-extrabold text-slate-900" id="resumo-valor-importante">R$ 0,00</h2>
+                        <div class="absolute right-4 top-4 w-2 h-2 rounded-full bg-amber-500"></div>
+                    </div>
+                    <div class="bg-gradient-to-br from-cyan-50/60 to-white p-5 rounded-2xl border border-cyan-100 relative">
+                        <span class="text-[10px] font-bold text-cyan-600 uppercase tracking-wider block mb-1">Normais (Azul)</span>
+                        <h2 class="text-2xl font-extrabold text-slate-900" id="resumo-valor-baixo">R$ 0,00</h2>
+                        <div class="absolute right-4 top-4 w-2 h-2 rounded-full bg-cyan-500"></div>
+                    </div>
+                </div>
+
+                <!-- Lista de Contas Cadastradas -->
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 flex-1 flex flex-col shadow-xs">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-100">
+                        <div>
+                            <h2 class="text-lg font-bold text-slate-900 tracking-tight">Linha do Tempo de Contas</h2>
+                            <p class="text-xs text-slate-400 font-medium">Contas organizadas de forma visual e simples por cores</p>
+                        </div>
+                        <div class="flex items-center gap-2 self-stretch sm:self-auto">
+                            <!-- Gerador de Relatório do Fechamento do Mês -->
+                            <button onclick="gerarRelatorioFechamentoMensalPDF()" class="flex-1 sm:flex-none px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm">
+                                <i class="fa-solid fa-file-pdf"></i> Imprimir Relatório do Mês (PDF)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Botões de Filtro Rápido para a Lista -->
+                    <div class="flex items-center gap-2 mb-4 overflow-x-auto pb-1" id="botoes-filtro-lista">
+                        <button onclick="filtrarListaContas('todas')" id="filtro-todas" class="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all bg-slate-900 text-white cursor-pointer">Ver Todas</button>
+                        <button onclick="filtrarListaContas('pagas')" id="filtro-pagas" class="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all bg-slate-100 text-slate-600 hover:bg-slate-200 cursor-pointer">Pagas</button>
+                        <button onclick="filtrarListaContas('pendentes')" id="filtro-pendentes" class="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all bg-slate-100 text-slate-600 hover:bg-slate-200 cursor-pointer">Pendentes</button>
+                    </div>
+
+                    <!-- Recipiente Dinâmico das Contas (Onde entram as linhas das contas) -->
+                    <div class="flex flex-col gap-3 max-h-[480px] overflow-y-auto pr-1" id="caixa-linhas-contas">
+                        <!-- Alimentado via código Javascript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= TELA 2: AGENDA DE VENCIMENTOS ================= -->
+            <div id="tela-agenda" class="painel-conteudo-aba hidden flex flex-col gap-6">
+                <!-- Estrutura do Calendário Mensal -->
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs">
+                    <div class="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
+                        <div>
+                            <h2 class="text-lg font-bold text-slate-900 tracking-tight">Calendário Mensal Prático</h2>
+                            <p class="text-xs text-slate-400 font-medium">Clique sobre o dia do calendário para ver quais contas vencem na data</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs font-bold text-slate-700 bg-slate-100 px-3.5 py-2 rounded-xl uppercase tracking-wider" id="rotulo-mes-ano-calendario">Maio de 2026</span>
+                        </div>
+                    </div>
+
+                    <!-- Cabeçalho com os dias da semana -->
+                    <div class="grid grid-cols-7 gap-2 text-center text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">
+                        <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div>
+                    </div>
+                    
+                    <!-- Grade que monta as células com os números dos dias -->
+                    <div class="grid grid-cols-7 gap-2.5" id="grade-celulas-calendario">
+                        <!-- Injetado dinamicamente via Javascript -->
+                    </div>
+                </div>
+                
+                <!-- Caixa de Informação de Ajuda para os Idosos -->
+                <div class="bg-slate-900 text-white rounded-2xl p-5 relative overflow-hidden shadow-xs">
+                    <h4 class="text-xs font-bold uppercase tracking-widest text-indigo-400 mb-1.5"><i class="fa-solid fa-lightbulb mr-1.5"></i> Entendendo os Pontinhos Coloridos</h4>
+                    <p class="text-sm text-slate-300 leading-relaxed max-w-2xl">O calendário mostra pequenas bolinhas coloridas nos dias que têm contas para pagar. Se a conta for muito urgente, a bolinha fica <span class="text-rose-400 font-bold">Vermelha</span>. Quando você pagar a conta no painel principal, a bolinha muda automaticamente para <span class="text-emerald-400 font-bold">Verde</span>. Assim fica fácil ver se o dia está livre e pago!</p>
+                </div>
+            </div>
+
+            <!-- ================= TELA 3: BLOCO DE NOTAS & WORD ================= -->
+            <div id="tela-notas" class="painel-conteudo-aba hidden flex flex-col gap-6">
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 flex-1 flex flex-col shadow-xs">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-100">
+                        <div>
+                            <h2 class="text-lg font-bold text-slate-900 tracking-tight">Anotações Gerais e Históricos</h2>
+                            <p class="text-xs text-slate-400 font-medium">Escreva lembretes importantes aqui para juntar com suas contas no Word</p>
+                        </div>
+                        <div class="flex items-center gap-2 self-stretch sm:self-auto">
+                            <!-- Botão que gera o documento do Word -->
+                            <button onclick="compilarEExportarDocumentoWord()" class="w-full sm:w-auto px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm">
+                                <i class="fa-solid fa-file-word"></i> Enviar Tudo para o Word (.doc)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Área de Escrita de Texto Livre -->
+                    <div class="flex-1 flex flex-col gap-4">
+                        <div class="flex-1">
+                            <textarea id="campo-anotacoes-texto" class="w-full min-h-[320px] p-4 text-base bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-700 leading-relaxed font-normal" placeholder="Escreva aqui recados sobre parcelamentos, números de telefone de cobradores ou combinados com familiares. Ao clicar no botão de cima, este texto será colocado na primeira página do Word, seguido automaticamente pela tabela detalhada de todas as suas contas pagas e não pagas..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Recipiente invisível usado pelo motor gerador de PDF (Garante impressão limpa e bonita) -->
+    <div id="caixa-impressao-pdf" class="hidden bg-white text-slate-900 font-sans"></div>
+
+    <!-- Código Inteligente que Faz Tudo Funcionar por Trás da Tela -->
+    <script>
+        // BANCO DE DADOS LOCAL DO APLICATIVO (Salva tudo no navegador)
+        let bancoDadosLocal = {
+            contas: [],
+            textoNotas: "",
+            filtroAtivo: "todas"
+        };
+
+        // Dados de exemplo iniciais para o aplicativo não começar vazio (Mês de Maio de 2026)
+        const dadosExemploIniciais = [
+            { id: "1", title: "Aluguel da Casa", amount: 1500.00, date: "2026-05-05", priority: "critical", paid: true, fileAttached: "Contrato_Locacao.pdf" },
+            { id: "2", title: "Farmácia e Medicamentos", amount: 340.50, date: "2026-05-28", priority: "important", paid: false, fileAttached: "Receita_Fatura.pdf" },
+            { id: "3", title: "Assinatura da TV a Cabo", amount: 120.00, date: "2026-05-25", priority: "low", paid: false, fileAttached: "" },
+            { id: "4", title: "Conta de Luz (Equatorial)", amount: 480.00, date: "2026-05-14", priority: "critical", paid: false, fileAttached: "Conta_Luz_Maio.pdf" },
+            { id: "5", title: "Conta de Água (Cosanpa)", amount: 95.00, date: "2026-05-10", priority: "important", paid: true, fileAttached: "Recibo_Agua.pdf" }
+        ];
+
+        // Rotina que roda assim que o aplicativo abre na tela
+        window.addEventListener('DOMContentLoaded', () => {
+            const dadosSalvosNavegador = localStorage.getItem('organizador_financeiro_dados');
+            if (dadosSalvosNavegador) {
+                try {
+                    bancoDadosLocal = JSON.parse(dadosSalvosNavegador);
+                    bancoDadosLocal.filtroAtivo = "todas"; // Reinicia o filtro para ver todas ao abrir
+                } catch(erro) {
+                    bancoDadosLocal = { contas: dadosExemploIniciais, textoNotas: "", filtroAtivo: "todas" };
+                }
+            } else {
+                bancoDadosLocal.contas = dadosExemploIniciais;
+            }
+
+            // Preenche o campo de texto do Bloco de Notas com o que estava salvo
+            document.getElementById('campo-anotacoes-texto').value = bancoDadosLocal.textoNotas || "";
+            
+            // Atualiza e monta todas as visões da tela
+            sincronizarEAtualizarTelas();
+        });
+
+        // Função utilitária para gravar as informações no armazenamento permanente do navegador
+        function salvarDadosNoNavegador() {
+            bancoDadosLocal.textoNotas = document.getElementById('campo-anotacoes-texto').value;
+            localStorage.setItem('organizador_financeiro_dados', JSON.stringify(bancoDadosLocal));
+        }
+
+        // Salva as notas automaticamente enquanto o usuário digita, evitando perdas
+        document.getElementById('campo-anotacoes-texto').addEventListener('input', () => {
+            salvarDadosNoNavegador();
+        });
+
+        // Alternador de Telas (Painel, Agenda e Bloco de Notas)
+        function trocarTelaAtiva(idAbaDestino) {
+            document.querySelectorAll('.painel-conteudo-aba').forEach(tela => tela.classList.add('hidden'));
+            document.querySelectorAll('#botoes-filtro-lista + div, .bg-white rounded-2xl p-3 button').forEach(botao => botao.classList.remove('aba-ativa'));
+            
+            // Remove realce visual de todos os botões de abas
+            document.getElementById('link-aba-painel').className = document.getElementById('link-aba-painel').className.replace('aba-ativa', '');
+            document.getElementById('link-aba-agenda').className = document.getElementById('link-aba-agenda').className.replace('aba-ativa', '');
+            document.getElementById('link-aba-notas').className = document.getElementById('link-aba-notas').className.replace('aba-ativa', '');
+
+            document.getElementById(`tela-${idAbaDestino}`).classList.remove('hidden');
+            document.getElementById(`link-aba-${idAbaDestino}`).classList.add('aba-ativa');
+            
+            if (idAbaDestino === 'agenda') {
+                montarGradeCalendarioMensal();
+            }
+        }
+
+        // Processa o nome do arquivo selecionado pelo usuário
+        let nomeArquivoTemporario = "";
+        function processarAnexoDeDocumento(evento) {
+            const arquivoRef = evento.target.files[0];
+            if (arquivoRef) {
+                nomeArquivoTemporario = arquivoRef.name;
+                document.getElementById('nome-arquivo-comentario').innerText = nomeArquivoTemporario;
+                document.getElementById('nome-arquivo-comentario').className = "text-[11px] text-indigo-600 font-bold truncate max-w-full px-2";
+                document.getElementById('texto-botao-upload').innerText = "Documento Vinculado";
+            }
+        }
+
+        // Função que recebe os dados do formulário e cadastra a nova conta
+        function salvarNovaContaFormulario(evento) {
+            evento.preventDefault();
+
+            const title = document.getElementById('campo-titulo').value.trim();
+            const amount = parseFloat(document.getElementById('campo-valor').value);
+            const date = document.getElementById('campo-data').value;
+            const priority = document.querySelector('input[name="campo-importancia"]:checked').value;
+
+            if(!title || isNaN(amount) || !date) return;
+
+            const novaContaObjeto = {
+                id: "conta_" + Date.now().toString(),
+                title,
+                amount,
+                date,
+                priority,
+                paid: false,
+                fileAttached: nomeArquivoTemporario || ""
+            };
+
+            bancoDadosLocal.contas.push(novaContaObjeto);
+            salvarDadosNoNavegador();
+
+            // Limpa os campos do formulário para o próximo preenchimento de forma segura
+            document.getElementById('formulario-captura-conta').reset();
+            nomeArquivoTemporario = "";
+            document.getElementById('nome-arquivo-comentario').innerText = "Nenhum arquivo anexado";
+            document.getElementById('nome-arquivo-comentario').className = "text-[10px] text-slate-400 font-medium";
+            document.getElementById('texto-botao-upload').innerText = "Selecionar arquivo PDF";
+
+            // Recarrega as telas
+            sincronizarEAtualizarTelas();
+            alert("Sucesso: A conta foi adicionada na sua lista!");
+        }
+
+        // Altera o estado de pagamento da conta (Paga / Não Paga)
+        function alternarEstadoPagamentoConta(idConta) {
+            const indiceLocalizado = bancoDadosLocal.contas.findIndex(item => item.id === idConta);
+            if (indiceLocalizado !== -1) {
+                const contaAlvo = bancoDadosLocal.contas[indiceLocalizado];
+                contaAlvo.paid = !contaAlvo.paid;
+                salvarDadosNoNavegador();
+                sincronizarEAtualizarTelas();
+
+                // Se a conta acabou de ser paga, emite na hora o Recibo/Aviso em PDF
+                if (contaAlvo.paid) {
+                    emitirAvisoPagamentoIndividualPDF(contaAlvo);
+                }
+            }
+        }
+
+        // Exclui um registro de conta da lista
+        function excluirRegistroConta(idConta) {
+            if(confirm("Deseja apagar definitivamente esta conta da sua lista?")) {
+                bancoDadosLocal.contas = bancoDadosLocal.contas.filter(item => item.id !== idConta);
+                salvarDadosNoNavegador();
+                sincronizarEAtualizarTelas();
+            }
+        }
+
+        // Controla os botões de filtro da lista principal
+        function filtrarListaContas(tipoFiltro) {
+            bancoDadosLocal.filtroAtivo = tipoFiltro;
+            
+            document.querySelectorAll('#botoes-filtro-lista button').forEach(botao => {
+                botao.className = "px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all bg-slate-100 text-slate-600 hover:bg-slate-200 cursor-pointer";
+            });
+
+            const botaoFiltroSelecionado = document.getElementById(`filtro-${tipoFiltro}`);
+            if (botaoFiltroSelecionado) {
+                botaoFiltroSelecionado.className = "px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all bg-slate-900 text-white cursor-pointer";
+            }
+
+            renderizarLinhasContasPainel();
+        }
+
+        // Monta visualmente as linhas de contas na tela baseado no filtro selecionado
+        function renderizarLinhasContasPainel() {
+            const caixaContas = document.getElementById('caixa-linhas-contas');
+            caixaContas.innerHTML = "";
+
+            // Organiza a lista colocando sempre por ordem de data de vencimento
+            bancoDadosLocal.contas.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            let listaFiltrada = [];
+            if (bancoDadosLocal.filtroAtivo === 'pagas') {
+                listaFiltrada = bancoDadosLocal.contas.filter(item => item.paid);
+            } else if (bancoDadosLocal.filtroAtivo === 'pendentes') {
+                listaFiltrada = bancoDadosLocal.contas.filter(item => !item.paid);
+            } else {
+                listaFiltrada = bancoDadosLocal.contas;
+            }
+
+            if (listaFiltrada.length === 0) {
+                caixaContas.innerHTML = `
+                    <div class="text-center py-12 text-slate-400 flex flex-col items-center justify-center gap-3 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                        <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-slate-300 shadow-xs"><i class="fa-solid fa-folder-open"></i></div>
+                        <p class="text-xs font-bold text-slate-500">Nenhuma conta encontrada nesta categoria.</p>
+                    </div>`;
+                return;
+            }
+
+            listaFiltrada.forEach(conta => {
+                let corBordaEfundoClasse = "";
+                let crachaIndicadorMarkup = "";
+
+                if (conta.paid) {
+                    corBordaEfundoClasse = "border-l-4 border-emerald-500 bg-emerald-50/20";
+                    crachaIndicadorMarkup = "<span class='px-2 py-0.5 text-[9px] font-bold rounded-md bg-emerald-100 text-emerald-700 uppercase tracking-wider flex items-center gap-1'><i class='fa-solid fa-check-circle'></i> Pago</span>";
+                } else {
+                    if (conta.priority === 'critical') {
+                        corBordaEfundoClasse = "border-l-4 border-rose-500 bg-rose-50/20";
+                        crachaIndicadorMarkup = "<span class='px-2 py-0.5 text-[9px] font-bold rounded-md bg-rose-100 text-rose-700 uppercase tracking-wider'>Muito Urgente</span>";
+                    } else if (conta.priority === 'important') {
+                        corBordaEfundoClasse = "border-l-4 border-amber-500 bg-amber-50/20";
+                        crachaIndicadorMarkup = "<span class='px-2 py-0.5 text-[9px] font-bold rounded-md bg-amber-100 text-amber-700 uppercase tracking-wider'>Importante</span>";
+                    } else {
+                        corBordaEfundoClasse = "border-l-4 border-cyan-500 bg-cyan-50/20";
+                        crachaIndicadorMarkup = "<span class='px-2 py-0.5 text-[9px] font-bold rounded-md bg-cyan-100 text-cyan-700 uppercase tracking-wider'>Normal</span>";
+                    }
+                }
+
+                // Corrige a exibição da data para o formato brasileiro (DD/MM/AAAA)
+                const dataFormatadaBr = conta.date.split('-').reverse().join('/');
+
+                const linhaContaItem = document.createElement('div');
+                linhaContaItem.className = `flex items-center justify-between p-4 rounded-xl bg-white border border-slate-150 transition-all hover:shadow-xs ${corBordaEfundoClasse}`;
+                linhaContaItem.innerHTML = `
+                    <div class="flex items-center gap-3.5 min-w-0 flex-1">
+                        <!-- Botão Redondo de Marcar como Pago -->
+                        <button onclick="alternarEstadoPagamentoConta('${conta.id}')" class="w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all shrink-0 cursor-pointer ${conta.paid ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 hover:border-indigo-500 bg-slate-50'}" title="${conta.paid ? 'Marcar como Aberta' : 'Marcar como Paga'}">
+                            ${conta.paid ? '<i class="fa-solid fa-check text-xs"></i>' : ''}
+                        </button>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-2 mb-1 flex-wrap">
+                                <h4 class="text-base font-bold text-slate-800 truncate ${conta.paid ? 'line-through text-slate-400' : ''}">${conta.title}</h4>
+                                ${crachaIndicadorMarkup}
+                            </div>
+                            <div class="flex items-center gap-3 text-xs text-slate-400 font-medium">
+                                <span><i class="fa-regular fa-calendar-days mr-1 text-[11px]"></i>Vence em: ${dataFormatadaBr}</span>
+                                ${conta.fileAttached ? `<span class="text-indigo-600 truncate max-w-[140px] flex items-center gap-1 bg-indigo-50 px-1.5 py-0.5 rounded" title="${conta.fileAttached}"><i class="fa-solid fa-paperclip text-[10px]"></i> ${conta.fileAttached}</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4 ml-3 shrink-0">
+                        <span class="text-base font-extrabold text-slate-900">R$ ${conta.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <button onclick="excluirRegistroConta('${conta.id}')" class="text-slate-300 hover:text-rose-500 p-1.5 transition-colors cursor-pointer text-sm" title="Excluir Conta">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                `;
+                caixaContas.appendChild(linhaContaItem);
+            });
+        }
+
+        // Centralizador que recalcula os valores e atualiza o painel
+        function sincronizarEAtualizarTelas() {
+            let acumuladoPendente = 0;
+            let acumuladoPago = 0;
+            let valorCriticoAberto = 0;
+            let valorImportanteAberto = 0;
+            let valorBaixoAberto = 0;
+
+            bancoDadosLocal.contas.forEach(item => {
+                if(item.paid) {
+                    acumuladoPago += item.amount;
+                } else {
+                    acumuladoPendente += item.amount;
+                    if(item.priority === 'critica') valorCriticoAberto += item.amount;
+                    if(item.priority === 'importante') valorImportanteAberto += item.amount;
+                    if(item.priority === 'baixa') valorBaixoAberto += item.amount;
+                }
+            });
+
+            // Alimenta os textos numéricos grandes na tela principal
+            document.getElementById('topo-contador-pendente').innerText = `R$ ${acumuladoPendente.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+            document.getElementById('topo-contador-pago').innerText = `R$ ${acumuladoPago.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+            
+            document.getElementById('resumo-valor-critico').innerText = `R$ ${valorCriticoAberto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+            document.getElementById('resumo-valor-importante').innerText = `R$ ${valorImportanteAberto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+            document.getElementById('resumo-valor-baixo').innerText = `R$ ${valorBaixoAberto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+
+            document.getElementById('cracha-total-contas').innerText = bancoDadosLocal.contas.length;
+
+            // Dispara as sub-renderizações das listas e calendários
+            renderizarLinhasContasPainel();
+            montarGradeCalendarioMensal();
+        }
+
+        // CONSTRUTOR DO CALENDÁRIO MENSAL INTERATIVO (Focado em Maio de 2026)
+        function montarGradeCalendarioMensal() {
+            const caixaGrade = document.getElementById('grade-celulas-calendario');
+            if(!caixaGrade) return;
+            
+            caixaGrade.innerHTML = "";
+
+            // Definição do mês fixo de trabalho para o exemplo estruturado
+            const anoFixo = 2026;
+            const indiceMesFixo = 4; // Corresponde ao mês de Maio (Mêses começam em 0 no Javascript)
+            
+            const primeiroDiaSemanaIndice = new Date(anoFixo, indiceMesFixo, 1).getDay();
+            const totalDiasNoMes = new Date(anoFixo, indiceMesFixo + 1, 0).getDate();
+
+            // Adiciona blocos vazios para pular os dias da semana até chegar no dia 1
+            for (let espaco = 0; espaco < primeiroDiaSemanaIndice; espaco++) {
+                const celulaVazia = document.createElement('div');
+                celulaVazia.className = "bg-slate-50/40 border border-slate-100 rounded-xl min-h-[72px] opacity-30";
+                caixaGrade.appendChild(celulaVazia);
+            }
+
+            // Laço de repetição que cria os dias do mês
+            for (let diaCorrente = 1; diaCorrente <= totalDiasNoMes; diaCorrente++) {
+                const stringDataPadronizada = `${anoFixo}-${String(indiceMesFixo + 1).padStart(2, '0')}-${String(diaCorrente).padStart(2, '0')}`;
+                
+                // Filtra se existem contas registradas para este dia específico do calendário
+                const contasDoDiaLista = bancoDadosLocal.contas.filter(item => item.date === stringDataPadronizada);
+
+                const celulaDiaNodo = document.createElement('div');
+                celulaDiaNodo.className = "celula-calendario bg-white border border-slate-200 rounded-xl p-2 min-h-[76px] flex flex-col justify-between cursor-pointer select-none relative group shadow-2xs";
+                
+                // Constrói a linha de bolinhas coloridas dentro do dia do calendário
+                let markupBolinhasCromaticas = '<div class="flex flex-wrap gap-1 mt-1.5 max-w-full overflow-hidden">';
+                if (contasDoDiaLista.length > 0) {
+                    contasDoDiaLista.forEach(contaGasto => {
+                        let corBolinhaMapeada = "bg-cyan-500 shadow-xs";
+                        if(contaGasto.paid) {
+                            corBolinhaMapeada = "bg-emerald-500 shadow-xs";
+                        } else if(contaGasto.priority === 'critica') {
+                            corBolinhaMapeada = "bg-rose-500 shadow-xs";
+                        } else if(contaGasto.priority === 'importante') {
+                            corBolinhaMapeada = "bg-amber-500 shadow-xs";
+                        }
+                        
+                        markupBolinhasCromaticas += `<span class="w-2 h-2 rounded-full ${corBolinhaMapeada}" title="${contaGasto.title}"></span>`;
+                    });
+                }
+                markupBolinhasCromaticas += '</div>';
+
+                celulaDiaNodo.innerHTML = `
+                    <div class="flex justify-between items-center w-full">
+                        <span class="text-xs font-bold text-slate-700 group-hover:text-indigo-600 transition-colors">${diaCorrente}</span>
+                        ${contasDoDiaLista.length > 0 ? `<span class="text-[9px] font-extrabold bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-md">${contasDoDiaLista.length}</span>` : ''}
+                    </div>
+                    ${markupBolinhasCromaticas}
+                `;
+                
+                // Ação de clique no dia do calendário para detalhar os gastos de forma simples
+                celulaDiaNodo.onclick = () => {
+                    if (contasDoDiaLista.length > 0) {
+                        let mensagemAlerta = `Contas para o dia ${diaCorrente}/05/2026:\n\n`;
+                        contasDoDiaLista.forEach((conta, pos) => {
+                            mensagemAlerta += `${pos + 1}. ${conta.title}\n   • Valor: R$ ${conta.amount.toLocaleString('pt-BR', {minimumFractionDigits:2})}\n   • Situação: ${conta.paid ? 'CONTA PAGA (Quitada)' : 'PENDENTE (Ainda não paga)'}\n   • Urgência: ${conta.priority === 'critica' ? 'Muito Urgente' : conta.priority === 'importante' ? 'Importante' : 'Normal'}\n\n`;
+                        });
+                        alert(mensagemAlerta);
+                    } else {
+                        alert(`Dia Livre! Nenhuma conta vence no dia ${diaCorrente}/05/2026.`);
+                    }
+                };
+
+                caixaGrade.appendChild(celulaDiaNodo);
+            }
+        }
+
+        // EMISSOR DE AVISO DE PAGAMENTO INDIVIDUAL (PDF gerado ao marcar como pago)
+        function emitirAvisoPagamentoIndividualPDF(conta) {
+            const caixaImpressao = document.getElementById('caixa-impressao-pdf');
+            caixaImpressao.classList.remove('hidden');
+
+            const dataInvertidaBr = conta.date.split('-').reverse().join('/');
+            const momentoExatoPagamentoStr = new Date().toLocaleDateString('pt-BR') + ' às ' + new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+
+            caixaImpressao.innerHTML = `
+                <div style="font-family: Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 32px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
+                    <div style="text-align: center; margin-bottom: 28px;">
+                        <div style="font-size: 32px; margin-bottom: 8px;">✔️</div>
+                        <h2 style="font-size: 20px; font-weight: bold; color: #0f172a; margin: 0 0 4px 0;">Aviso de Pagamento Confirmado</h2>
+                        <p style="font-size: 12px; color: #64748b; margin: 0;">Registro de Quitação de Conta — Sistema de Fluxo Financeiro</p>
+                    </div>
+                    
+                    <div style="background-color: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #f1f5f9; margin-bottom: 24px;">
+                        <table style="width: 100%; font-size: 13px; border-collapse: collapse; line-height: 2.2;">
+                            <tr style="border-bottom: 1px solid #e2e8f0;"><td style="color: #64748b; font-weight: bold;">Nome da Conta / Credor:</td><td style="text-align: right; font-weight: bold; color: #0f172a;">${conta.title}</td></tr>
+                            <tr style="border-bottom: 1px solid #e2e8f0;"><td style="color: #64748b; font-weight: bold;">Valor Liquidado:</td><td style="text-align: right; font-weight: 800; color: #10b981; font-size: 15px;">R$ ${conta.amount.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td></tr>
+                            <tr style="border-bottom: 1px solid #e2e8f0;"><td style="color: #64748b; font-weight: bold;">Data do Vencimento Original:</td><td style="text-align: right; font-weight: 600; color: #475569;">${dataInvertidaBr}</td></tr>
+                            <tr style="border-bottom: 1px solid #e2e8f0;"><td style="color: #64748b; font-weight: bold;">Urgência Registrada:</td><td style="text-align: right; font-weight: 600; color: #475569; text-transform: uppercase;">${conta.priority === 'critica' ? 'Muito Urgente' : conta.priority === 'importante' ? 'Importante' : 'Normal'}</td></tr>
+                            ${conta.fileAttached ? `<tr style="border-bottom: 1px solid #e2e8f0;"><td style="color: #64748b; font-weight: bold;">Documento do Boleto Anexo:</td><td style="text-align: right; font-weight: 600; color: #6366f1;">${conta.fileAttached}</td></tr>` : ''}
+                            <tr><td style="color: #64748b; font-weight: bold;">Data da Baixa no Sistema:</td><td style="text-align: right; font-weight: bold; color: #059669;">${momentoExatoPagamentoStr}</td></tr>
+                        </table>
+                    </div>
+                    
+                    <div style="border-top: 1px dashed #cbd5e1; padding-top: 16px; text-align: center;">
+                        <p style="font-size: 11px; color: #94a3b8; margin: 0; line-height: 1.6;">Este documento é um comprovante digital gerado de forma imediata pelo aplicativo para fins de controle e organização das contas domésticas e despesas familiares.</p>
+                    </div>
+                </div>
+            `;
+
+            const configuracoesConversorPDF = {
+                margin:       12,
+                filename:     `Aviso_Pagamento_${conta.title.replace(/\s+/g, '_')}.pdf`,
+                image:        { type: 'jpeg', quality: 0.99 },
+                html2canvas:  { scale: 2, logging: false },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().set(configuracoesConversorPDF).from(caixaImpressao).save().then(() => {
+                caixaImpressao.classList.add('hidden');
+                caixaImpressao.innerHTML = "";
+            });
+        }
+
+        // GERADOR DE FECHAMENTO DO MÊS EM PDF (Separa contas pagas e pendentes perfeitamente)
+        function gerarRelatorioFechamentoMensalPDF() {
+            if (bancoDadosLocal.contas.length === 0) {
+                alert("Erro: Adicione pelo menos uma conta na lista para poder criar o fechamento do mês.");
+                return;
+            }
+
+            const caixaImpressao = document.getElementById('caixa-impressao-pdf');
+            caixaImpressao.classList.remove('hidden');
+
+            let somaTotalGeral = 0;
+            let somaTotalPagas = 0;
+            let somaTotalPendentes = 0;
+
+            let linhasHtmlPagas = "";
+            let linhasHtmlPendentes = "";
+
+            // Ordena os itens pela data antes de montar as tabelas do PDF
+            bancoDadosLocal.contas.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            bancoDadosLocal.contas.forEach(item => {
+                somaTotalGeral += item.amount;
+                const dataInvertida = item.date.split('-').reverse().join('/');
+                const textoUrgencia = item.priority === 'critica' ? 'Muito Urgente' : item.priority === 'importante' ? 'Importante' : 'Normal';
+                
+                const modeloLinhaTabela = `
+                    <tr style="border-bottom: 1px solid #e2e8f0; font-size: 11px; color: #334155;">
+                        <td style="padding: 10px 8px; text-align: left; font-weight: bold;">${item.title}</td>
+                        <td style="padding: 10px 8px; text-align: center;">${dataInvertida}</td>
+                        <td style="padding: 10px 8px; text-align: center; font-weight: 600;">${textoUrgencia}</td>
+                        <td style="padding: 10px 8px; text-align: right; font-weight: bold; color: #0f172a;">R$ ${item.amount.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                    </tr>
+                `;
+
+                if (item.paid) {
+                    somaTotalPagas += item.amount;
+                    linhasHtmlPagas += modeloLinhaTabela;
+                } else {
+                    somaTotalPendentes += item.amount;
+                    linhasHtmlPendentes += modeloLinhaTabela;
+                }
+            });
+
+            // Tratamento caso alguma das tabelas esteja vazia no fechamento
+            if(!linhasHtmlPagas) {
+                linhasHtmlPagas = `<tr><td colspan="4" style="padding: 12px; text-align: center; color: #94a3b8; font-size: 11px; font-style: italic;">Nenhuma conta paga ou quitada até o momento.</td></tr>`;
+            }
+            if(!linhasHtmlPendentes) {
+                linhasHtmlPendentes = `<tr><td colspan="4" style="padding: 12px; text-align: center; color: #15803d; font-size: 11px; font-style: bold;">Parabéns! Nenhuma conta pendente em aberto para este mês.</td></tr>`;
+            }
+
+            const dataHojeStr = new Date().toLocaleDateString('pt-BR');
+
+            caixaImpressao.innerHTML = `
+                <div style="font-family: Arial, sans-serif; padding: 24px; background-color: #ffffff;">
+                    <!-- Topo do Documento do Relatório -->
+                    <div style="display: table; width: 100%; border-bottom: 3px solid #4f46e5; padding-bottom: 16px; margin-bottom: 24px;">
+                        <div style="display: table-cell; vertical-align: middle;">
+                            <h1 style="font-size: 22px; font-weight: bold; color: #0f172a; margin: 0;">Relatório de Fechamento Financeiro Mensal</h1>
+                            <p style="font-size: 12px; color: #64748b; margin: 4px 0 0 0; font-weight: 500;">Balanço Consolidado de Contas Domésticas e Despesas</p>
+                        </div>
+                        <div style="display: table-cell; vertical-align: middle; text-align: right;">
+                            <span style="font-size: 11px; background-color: #f1f5f9; padding: 6px 12px; border-radius: 8px; font-weight: bold; color: #475569;">Emitido em: ${dataHojeStr}</span>
+                        </div>
+                    </div>
+
+                    <!-- Caixa de Resumos Financeiros em Linha -->
+                    <div style="margin-bottom: 28px; width: 100%; display: table; table-layout: fixed; border-collapse: separate; border-spacing: 12px 0;">
+                        <div style="display: table-cell; background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 14px; border-radius: 10px; text-align: center;">
+                            <span style="font-size: 10px; font-weight: bold; color: #64748b; text-transform: uppercase;">Valor Total Acumulado</span>
+                            <h3 style="font-size: 18px; font-weight: bold; color: #0f172a; margin: 4px 0 0 0;">R$ ${somaTotalGeral.toLocaleString('pt-BR', {minimumFractionDigits:2})}</h3>
+                        </div>
+                        <div style="display: table-cell; background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 14px; border-radius: 10px; text-align: center;">
+                            <span style="font-size: 10px; font-weight: bold; color: #166534; text-transform: uppercase;">Contas Pagas (Quitadas)</span>
+                            <h3 style="font-size: 18px; font-weight: bold; color: #15803d; margin: 4px 0 0 0;">R$ ${somaTotalPagas.toLocaleString('pt-BR', {minimumFractionDigits:2})}</h3>
+                        </div>
+                        <div style="display: table-cell; background-color: #fef2f2; border: 1px solid #fecaca; padding: 14px; border-radius: 10px; text-align: center;">
+                            <span style="font-size: 10px; font-weight: bold; color: #991b1b; text-transform: uppercase;">Contas em Aberto (Pendentes)</span>
+                            <h3 style="font-size: 18px; font-weight: bold; color: #b91c1c; margin: 4px 0 0 0;">R$ ${somaTotalPendentes.toLocaleString('pt-BR', {minimumFractionDigits:2})}</h3>
+                        </div>
+                    </div>
+
+                    <!-- TABELA 1: CONTAS PENDENTES -->
+                    <div style="margin-bottom: 28px;">
+                        <h2 style="font-size: 13px; font-weight: bold; color: #b91c1c; text-transform: uppercase; margin-bottom: 8px; border-left: 3px solid #f43f5e; padding-left: 8px;">1. Contas Pendentes (A Pagar)</h2>
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background-color: #fff1f2; border-bottom: 1.5px solid #fecaca; font-size: 10px; text-transform: uppercase; font-weight: bold; color: #991b1b;">
+                                    <th style="padding: 10px 8px; text-align: left;">Nome da Conta / Compromisso</th>
+                                    <th style="padding: 10px 8px; text-align: center; width: 100px;">Vencimento</th>
+                                    <th style="padding: 10px 8px; text-align: center; width: 110px;">Importância</th>
+                                    <th style="padding: 10px 8px; text-align: right; width: 120px;">Valor Nominal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${linhasHtmlPendentes}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- TABELA 2: CONTAS QUITADAS -->
+                    <div style="margin-bottom: 36px;">
+                        <h2 style="font-size: 13px; font-weight: bold; color: #15803d; text-transform: uppercase; margin-bottom: 8px; border-left: 3px solid #10b981; padding-left: 8px;">2. Contas Pagas (Quitadas)</h2>
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background-color: #f0fdf4; border-bottom: 1.5px solid #bbf7d0; font-size: 10px; text-transform: uppercase; font-weight: bold; color: #166534;">
+                                    <th style="padding: 10px 8px; text-align: left;">Nome da Conta / Compromisso</th>
+                                    <th style="padding: 10px 8px; text-align: center; width: 100px;">Data Limite</th>
+                                    <th style="padding: 10px 8px; text-align: center; width: 110px;">Importância</th>
+                                    <th style="padding: 10px 8px; text-align: right; width: 120px;">Valor Pago</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${linhasHtmlPagas}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div style="border-top: 1px solid #e2e8f0; padding-top: 14px; text-align: center; margin-top: 40px;">
+                        <p style="font-size: 10px; color: #94a3b8; margin: 0; font-weight: 500;">Balanço Financeiro Compilado de Forma Autônoma pelo Aplicativo Organizador de Contas.</p>
+                    </div>
+                </div>
+            `;
+
+            const opcoesSalvarPDF = {
+                margin:       14,
+                filename:     `Fechamento_Mensal_Contas_Maio_2026.pdf`,
+                image:        { type: 'jpeg', quality: 0.99 },
+                html2canvas:  { scale: 2, logging: false },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().set(opcoesSalvarPDF).from(caixaImpressao).save().then(() => {
+                caixaImpressao.classList.add('hidden');
+                caixaImpressao.innerHTML = "";
+            });
+        }
+
+        // MOTOR DE EXPORTAÇÃO COMPATÍVEL COM O MICROSOFT WORD (.doc)
+        function compilarEExportarDocumentoWord() {
+            const textoAnotacoesUsuario = document.getElementById('campo-anotacoes-texto').value;
+            
+            let linhasWordContasPagas = "";
+            let linhasWordContasPendentes = "";
+
+            bancoDadosLocal.contas.forEach(item => {
+                const dataReversa = item.date.split('-').reverse().join('/');
+                const textoUrgenciaBr = item.priority === 'critica' ? 'Muito Urgente' : item.priority === 'importante' ? 'Importante' : 'Normal';
+                
+                const linhaTabelaEstrutura = `
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid #cccccc; font-size: 11pt;">${item.title}</td>
+                        <td style="padding: 8px; border: 1px solid #cccccc; text-align: center; font-size: 11pt;">${dataReversa}</td>
+                        <td style="padding: 8px; border: 1px solid #cccccc; text-align: center; font-size: 10pt; font-weight: bold;">${textoUrgenciaBr.toUpperCase()}</td>
+                        <td style="padding: 8px; border: 1px solid #cccccc; text-align: right; font-weight: bold; font-size: 11pt;">R$ ${item.amount.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
+                    </tr>
+                `;
+
+                if (item.paid) linhasWordContasPagas += linhaTabelaStructure;
+                else linhasWordContasPendentes += linhaTabelaEstrutura;
+            });
+
+            if(!linhasWordContasPagas) linhasWordContasPagas = "<tr><td colspan='4' style='padding:8px; text-align:center; color:#888888; font-style:italic;'>Nenhuma conta paga lançada nesta categoria.</td></tr>";
+            if(!linhasWordContasPendentes) linhasWordContasPendentes = "<tr><td colspan='4' style='padding:8px; text-align:center; color:#888888; font-style:italic;'>Nenhuma conta pendente lançada nesta categoria.</td></tr>";
+
+            // Arquitetura limpa de texto puro formatado aceito nativamente pelo Microsoft Word
+            const envelopeConteudoDocumentoWord = `
+                <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+                <head>
+                    <meta charset='utf-8'>
+                    <title>Balanço Financeiro e Memorial Informativo</title>
+                    <style>
+                        body { font-family: 'Arial', sans-serif; line-height: 1.6; color: #222222; }
+                        h1 { color: #1e3a8a; border-bottom: 2px solid #3b82f6; padding-bottom: 6px; font-size: 22pt; font-weight: bold; }
+                        h2 { color: #1e40af; margin-top: 24px; font-size: 15pt; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; }
+                        p { font-size: 11pt; text-align: justify; }
+                        .nota-rodape { font-size: 9pt; color: #666666; text-align: center; margin-top: 50px; }
+                    </style>
+                </head>
+                <body>
+                    <h1>Balanço Financeiro e Memorial Informativo</h1>
+                    <p><strong>Data de Exportação dos Dados:</strong> ${new Date().toLocaleDateString('pt-BR')}</p>
+                    
+                    <h2>1. Memorial Descritivo e Notas Gerais (Anotações do Usuário)</h2>
+                    <p>${textoAnotacoesUsuario ? textoAnotacoesUsuario.replace(/\n/g, '<br>') : 'Nenhum texto informativo inserido no bloco de notas pelo usuário.'}</p>
+                    
+                    <h2>2. Detalhamento de Contas Pendentes (A Pagar)</h2>
+                    <table style="width: 100%; border-collapse: collapse; margin-top: 12px;">
+                        <thead>
+                            <tr style="background-color: #f3f4f6; font-weight: bold; border: 1px solid #cccccc;">
+                                <th style="padding: 8px; text-align: left; border: 1px solid #cccccc;">Nome da Conta / Despesa</th>
+                                <th style="padding: 8px; text-align: center; border: 1px solid #cccccc; width: 110px;">Vencimento</th>
+                                <th style="padding: 8px; text-align: center; border: 1px solid #cccccc; width: 110px;">Importância</th>
+                                <th style="padding: 8px; text-align: right; border: 1px solid #cccccc; width: 130px;">Valor Nominal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${linhasWordContasPendentes}
+                        </tbody>
+                    </table>
+
+                    <h2>3. Detalhamento de Contas Quitadas (Pagas)</h2>
+                    <table style="width: 100%; border-collapse: collapse; margin-top: 12px;">
+                        <thead>
+                            <tr style="background-color: #f3f4f6; font-weight: bold; border: 1px solid #cccccc;">
+                                <th style="padding: 8px; text-align: left; border: 1px solid #cccccc;">Nome da Conta / Despesa</th>
+                                <th style="padding: 8px; text-align: center; border: 1px solid #cccccc; width: 110px;">Data de Gasto</th>
+                                <th style="padding: 8px; text-align: center; border: 1px solid #cccccc; width: 110px;">Importância</th>
+                                <th style="padding: 8px; text-align: right; border: 1px solid #cccccc; width: 130px;">Valor Liquidado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${linhasWordContasPagas}
+                        </tbody>
+                    </table>
+                    
+                    <p class="nota-rodape">Documento gerado automaticamente através do organizador Fluxo Financeiro.</p>
+                </body>
+                </html>
+            `;
+
+            // Converte o texto estruturado acima em um arquivo baixável pelo navegador de forma imediata
+            const blobArquivoBinario = new Blob([envelopeConteudoDocumentoWord], { type: 'application/msword;charset=utf-8' });
+            const urlDownloadDireto = URL.createObjectURL(blobArquivoBinario);
+            
+            const linkInvisivelEfemero = document.createElement('a');
+            linkInvisivelEfemero.href = urlDownloadDireto;
+            linkInvisivelEfemero.download = "Balanço_e_Notas_Financeiras_Consolidado.doc";
+            document.body.appendChild(linkInvisivelEfemero);
+            linkInvisivelEfemero.click();
+            document.body.removeChild(linkInvisivelEfemero);
+            URL.revokeObjectURL(urlUrlDownloadDireto);
+            
+            alert("Sucesso: Suas anotações e tabelas de contas foram compiladas e baixadas! O arquivo .doc foi salvo e abrirá diretamente dentro do Microsoft Word mantendo toda a organização intacta.");
+        }
+    </script>
+</body>
+</html>
